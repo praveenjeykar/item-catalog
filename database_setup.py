@@ -41,7 +41,7 @@ class GunModel(Base):
     guncompany_id= Column(Integer, ForeignKey('guncompany.id'))
     guncompany = relationship(Gun)
     user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship(User)
+    user = relationship("User", cascade="all, delete-orphan")
 # We added this serialize function to be able to send JSON objects in a
 # serializable format
     @property
