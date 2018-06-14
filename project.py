@@ -1,4 +1,7 @@
-from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
+from flask import (Flask,
+                   render_template,
+                   request, redirect,
+                   jsonify, url_for, flash)
 
 
 from sqlalchemy import create_engine, asc
@@ -28,7 +31,6 @@ engine = create_engine('sqlite:///gundatabase.db')
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
-
 
 
 # Create anti-forgery state token
@@ -97,8 +99,8 @@ def gconnect():
     stored_access_token = login_session.get('access_token')
     stored_gplus_id = login_session.get('gplus_id')
     if stored_access_token is not None and gplus_id == stored_gplus_id:
-        response = make_response(json.dumps('Current user is already connected.'),
-                                 200)
+        response = make_response(
+                   json.dumps('Current user is already connected.'), 200)
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -117,7 +119,7 @@ def gconnect():
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
 
-    # See if a user exists, if it doesn't 
+    # See if a user exists, if it doesn't
     user_id = getUserID(data["email"])
     if not user_id:
         user_id = createUser(login_session)
@@ -129,7 +131,8 @@ def gconnect():
     output += '!</h1>'
     output += '<img src="'
     output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;\
+    -webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
     flash("you are now logged in as %s" % login_session['username'])
     print "done!"
     session.close()
@@ -139,46 +142,47 @@ def gconnect():
 
 
 def createUser(login_session):
-	session = DBSession()
-	
-        newUser = User(name=login_session['username'], email=login_session[
-                       'email'], picture=login_session['picture'])
-        session.add(newUser)
-        session.commit()
-        user = session.query(User).filter_by(email=login_session['email']).one()
-	session.close()
-        return user.id
+    session = DBSession()
+    newUser = User(name=login_session['username'],
+                   email=login_session['email'],
+                   picture=login_session['picture'])
+    session.add(newUser)
+    session.commit()
+    user = session.query(User).filter_by(email=login_session['email']).one()
+    session.close()
+    return user.id
 
 
 def getUserInfo(user_id):
-	session = DBSession()
-        user = session.query(User).filter_by(id=user_id).one()
-	session.close()
-        return user
+    session = DBSession()
+    user = session.query(User).filter_by(id=user_id).one()
+    session.close()
+    return user
 
 
 def getUserID(email):
-	session = DBSession()
-        try:
-            user = session.query(User).filter_by(email=email).one()
-            session.close()
-            return user.id
-        except:
-            return None
+    session = DBSession()
+    try:
+        user = session.query(User).filter_by(email=email).one()
+        session.close()
+        return user.id
+    except:
+        return None
 
 
 # DISCONNECT - Revoke a current user's token and reset their login_session
 @app.route('/gdisconnect')
 def gdisconnect():
-	session = DBSession()
-        # Only disconnect a connected user.
-        access_token = login_session.get('access_token')
-        if access_token is None:
-            response = make_response(
-                json.dumps('Current user not connected.'), 401)
-            response.headers['Content-Type'] = 'application/json'
-            return response
-        url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
+    session = DBSession()
+    # Only disconnect a connected user.
+    access_token = login_session.get('access_token')
+    if access_token is None:
+        response = make_response(
+            json.dumps('Current user not connected.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+        url = 'https://accounts.google.com/o/oauth2/revoke?token=%s'\
+            % access_token
         h = httplib2.Http()
         result = h.request(url, 'GET')[0]
 
@@ -190,7 +194,7 @@ def gdisconnect():
             del login_session['email']
             del login_session['picture']
 
-            response = make_response(json.dumps('Successfully disconnected.'), 200)
+            response = make_response(json.dumps('disconnection success.'), 200)
             response.headers['Content-Type'] = 'application/json'
             return response
         else:
@@ -205,109 +209,107 @@ def gdisconnect():
 # JSON APIs to view Restaurant Information
 @app.route('/guncompany/<int:guncompany_id>/menu/JSON')
 def guncompanyMenuJSON(guncompany_id):
-	session = DBSession()
-        guncompany = session.query(Gun).filter_by(id=guncompany_id).one()
-        items = session.query(GunModel).filter_by(
-            guncompany_id=guncompany_id).all()
-        session.close()
-        return jsonify(GunModels=[i.serialize for i in items])
+    session = DBSession()
+    guncompany = session.query(Gun).filter_by(id=guncompany_id).one()
+    items = session.query(GunModel).filter_by(
+        guncompany_id=guncompany_id).all()
+    session.close()
+    return jsonify(GunModels=[i.serialize for i in items])
 
 
 @app.route('/guncompany/<int:guncompany_id>/menu/<int:menu_id>/JSON')
 def gunModelJSON(guncompany_id, menu_id):
-	session = DBSession()
-        Menu_Item = session.query(GunModel).filter_by(id=menu_id).one()
-        session.close()
-        return jsonify(Menu_Item=Menu_Item.serialize)
+    session = DBSession()
+    Menu_Item = session.query(GunModel).filter_by(id=menu_id).one()
+    session.close()
+    return jsonify(Menu_Item=Menu_Item.serialize)
 
 
 @app.route('/guncompany/JSON')
 def guncomapanysJSON():
-	session = DBSession()
-        guncompanys = session.query(Gun).all()
-        session.close()
-        return jsonify(guncompanys=[r.serialize for r in guncompanys])
+    session = DBSession()
+    guncompanys = session.query(Gun).all()
+    session.close()
+    return jsonify(guncompanys=[r.serialize for r in guncompanys])
 
 
 # Show all restaurants
 @app.route('/')
 @app.route('/guncompany/')
 def showGuns():
-	session = DBSession()
-        guncompanys = session.query(Gun).order_by(asc(Gun.name))
-        if 'username' not in login_session:
-        	session.close()
-        	return render_template('publicguncompanys.html', guncompanys=guncompanys)
-        else:
-        	return render_template('guncompanys.html', guncompanys=guncompanys)
-        
-        
+    session = DBSession()
+    guncompanys = session.query(Gun).order_by(asc(Gun.name))
+    if 'username' not in login_session:
+        session.close()
+        return render_template('publicguncompanys.html',
+                               guncompanys=guncompanys)
+    else:
+        return render_template('guncompanys.html', guncompanys=guncompanys)
+
 
 # Create a new restaurant
 
 
 @app.route('/guncompany/new/', methods=['GET', 'POST'])
 def newGun():
-	session = DBSession()
-        if 'username' not in login_session:
-            return redirect('/login')
-        if request.method == 'POST':
-            newGun = Gun(
-                name=request.form['name'], user_id=login_session['user_id'])
-            session.add(newGun)
-            flash('New Gun Company %s Successfully Created' % newGun.name)
-            session.commit()
-            session.close()
-            return redirect(url_for('showGuns'))
-        else:
-            return render_template('newGun.html')
+    session = DBSession()
+    if 'username' not in login_session:
+        return redirect('/login')
+    if request.method == 'POST':
+        newGun = Gun(
+            name=request.form['name'], user_id=login_session['user_id'])
+        session.add(newGun)
+        flash('New Gun Company %s Successfully Created' % newGun.name)
+        session.commit()
+        session.close()
+        return redirect(url_for('showGuns'))
+    else:
+        return render_template('newGun.html')
 
 # Edit a restaurant
 
 
 @app.route('/guncompany/<int:guncompany_id>/edit/', methods=['GET', 'POST'])
 def editGun(guncompany_id):
-	session = DBSession()
-    	if 'username' not in login_session:
-        	return redirect('/login')
-    	editedGun = session.query(Gun).filter_by(id=guncompany_id).one()
-    	if editedGun.user_id != login_session['user_id']:
-		return "<html><script>alert('you are not allowed to edit this restaurant.Please create your own restaurant to edit.');</script></html>"
-    	if request.method == 'POST':
-        	editedGun.name = request.form['name']
-        	session.add(editedGun)
-		flash('Gun Successfully Edited %s' % request.form['name'])
-        	session.commit()
-        	session.close()
-        	return redirect(url_for('showGuns'))
-	else:
-    	    	return render_template('editGun.html', guncompany=editedGun)
-	
-		
-
-
+    session = DBSession()
+    if 'username' not in login_session:
+        return redirect('/login')
+    editedGun = session.query(Gun).filter_by(id=guncompany_id).one()
+    if editedGun.user_id != login_session['user_id']:
+	return "<html><script>alert('you are not allowed to edit this\
+    restaurant.Please create your own restaurant to edit.');</script></html>"
+    if request.method == 'POST':
+        editedGun.name = request.form['name']
+        session.add(editedGun)
+        flash('Gun Successfully Edited %s' % request.form['name'])
+        session.commit()
+        session.close()
+        return redirect(url_for('showGuns'))
+    else:
+        return render_template('editGun.html', guncompany=editedGun)
 
 
 # Delete a restaurant
 @app.route('/guncompany/<int:guncompany_id>/delete/', methods=['GET', 'POST'])
 def deleteGun(guncompany_id):
-	session = DBSession()
-        if 'username' not in login_session:
-            return redirect('/login')
-        guncompanyToDelete = session.query(
-            Gun).filter_by(id=guncompany_id).one()
-        if guncompanyToDelete.user_id == login_session['user_id']:
-		return "<script>function myFunction(){alert('you are not allowed to delete this guncompany.Please create your own guncompany to delete.');}</script><bodyonload='myFunction()''>"
-        if request.method == 'POST':
-         	session.delete(guncompanyToDelete)
-            	flash('%s Successfully Deleted' % guncompanyToDelete.name)
-            	session.commit()
-            	session.close()
-            	return redirect(url_for('showGuns', guncompany_id=guncompany_id))
-        else:
-            	return render_template('deleteGun.html', guncompany=guncompanyToDelete)
-        
-        	
+    session = DBSession()
+    if 'username' not in login_session:
+        return redirect('/login')
+    guncompanyToDelete = session.query(
+        Gun).filter_by(id=guncompany_id).one()
+    if guncompanyToDelete.user_id == login_session['user_id']:
+    	return "<script>function myFunction(){alert('you are not allowed to delete\
+    this guncompany.Please create your own guncompany\
+    to delete.');}</script><bodyonload='myFunction()''>"
+    if request.method == 'POST':
+        session.delete(guncompanyToDelete)
+        flash('%s Successfully Deleted' % guncompanyToDelete.name)
+        session.commit()
+        session.close()
+        return redirect(url_for('showGuns', guncompany_id=guncompany_id))
+    else:
+        return render_template('deleteGun.html', guncompany=guncompanyToDelete)
+
 
 # Show a restaurant menu
 
@@ -315,89 +317,104 @@ def deleteGun(guncompany_id):
 @app.route('/guncompany/<int:guncompany_id>/')
 @app.route('/guncompany/<int:guncompany_id>/menu/')
 def showMenu(guncompany_id):
-	session = DBSession()
-        guncompany = session.query(Gun).filter_by(id=guncompany_id).one()
-        creator = getUserInfo(guncompany.user_id)
-        items = session.query(GunModel).filter_by(guncompany_id=guncompany_id).all()
-        if 'username' not in login_session or creator.id!=login_session['user_id']:
-        	session.close()
-        	return render_template('publicarms.html', items=items, guncompany=guncompany,creator=creator)
-        else:
-	        return render_template('main.html', items=items, guncompany=guncompany, creator=creator)
-
-
+    session = DBSession()
+    guncompany = session.query(Gun).filter_by(id=guncompany_id).one()
+    creator = getUserInfo(guncompany.user_id)
+    items = session.query(GunModel).filter_by(guncompany_id=guncompany_id).all()
+    if 'username' not in login_session or creator.id != login_session['user_id']:
+        session.close()
+        return render_template('publicarms.html',
+                               items=items, guncompany=guncompany,
+                               creator=creator)
+    else:
+        return render_template('main.html', items=items,
+                               guncompany=guncompany, creator=creator)
 
 
 # Create a new menu item
-@app.route('/guncompany/<int:guncompany_id>/menu/new/', methods=['GET', 'POST'])
+@app.route('/guncompany/<int:guncompany_id>/menu/new/',
+           methods=['GET', 'POST'])
 def newGunModel(guncompany_id):
-	session = DBSession()
-        if 'username' not in login_session:
-            return redirect('/login')
-        guncompany = session.query(Gun).filter_by(id=guncompany_id).one()
-	if login_session['user_id'] != guncompany.user_id:
-		return "<script>function myFunction() {alert('You are not authorized to add menu items to this gun model. Please create your own gun model in order to add items.');}</script><body onload='myFunction()''>"
-	if request.method == 'POST':
-		newItem = GunModel(name=request.form['name'], description=request.form['description'], price=request.form[
-		                       'price'], course=request.form['course'], guncompany_id=guncompany_id, user_id=guncompany.user_id)
-		session.add(newItem)
-		flash('New Gun %s Model Successfully Created' % (newItem.name))
-		session.commit()
-		session.close()
-		return redirect(url_for('showMenu', guncompany_id=guncompany_id))
-	else:
-		return render_template('Newgunmodel.html', guncompany_id=guncompany_id)
-	
-	    
-	
+    session = DBSession()
+    if 'username' not in login_session:
+        return redirect('/login')
+    guncompany = session.query(Gun).filter_by(id=guncompany_id).one()
+    if login_session['user_id'] != guncompany.user_id:
+		return "<script>function myFunction() {alert('You are not authorized\
+        to add menu items to this gun model. Please create your own gun model\
+        to add items.');}</script><body onload='myFunction()''>"
+    if request.method == 'POST':
+        newItem = GunModel(name=request.form['name'],
+                           description=request.form['description'],
+                           price=request.form['price'],
+                           course=request.form['course'],
+                           guncompany_id=guncompany_id,
+                           user_id=guncompany.user_id)
+        session.add(newItem)
+        flash('New Gun %s Model Successfully Created' % (newItem.name))
+        session.commit()
+        session.close()
+        return redirect(url_for('showMenu', guncompany_id=guncompany_id))
+    else:
+        return render_template('Newgunmodel.html', guncompany_id=guncompany_id)
+
+
 # Edit a menu item
 
 
-@app.route('/guncompany/<int:guncompany_id>/menu/<int:menu_id>/edit', methods=['GET', 'POST'])
+@app.route('/guncompany/<int:guncompany_id>/menu/<int:menu_id>/edit',
+           methods=['GET', 'POST'])
 def editGunModel(guncompany_id, menu_id):
-	session = DBSession()
-        if 'username' not in login_session:
-            return redirect('/login')
-        editedItem = session.query(GunModel).filter_by(id=menu_id).one()
-        guncompany = session.query(Gun).filter_by(id=guncompany_id).one()
-	if login_session['user_id'] != guncompany.user_id:
-		return "<script>function myFunction() {alert('You are not authorized to edit to this gun model. Please create your own gun model in order to edit items.');}</script><body onload='myFunction()''>"
-        if request.method == 'POST':
-            if request.form['name']:
-                editedItem.name = request.form['name']
-            if request.form['description']:
-                editedItem.description = request.form['description']
-            if request.form['price']:
-                editedItem.price = request.form['price']
-            if request.form['course']:
-                editedItem.course = request.form['course']
+    session = DBSession()
+    if 'username' not in login_session:
+        return redirect('/login')
+    editedItem = session.query(GunModel).filter_by(id=menu_id).one()
+    guncompany = session.query(Gun).filter_by(id=guncompany_id).one()
+    if login_session['user_id'] != guncompany.user_id:
+		return "<script>function myFunction() {alert('You are not authorized\
+        to edit to this gun model. Please create your own gun model in order\
+        to edit items.');}</script><body onload='myFunction()''>"
+    if request.method == 'POST':
+        if request.form['name']:
+            editedItem.name = request.form['name']
+        if request.form['description']:
+            editedItem.description = request.form['description']
+        if request.form['price']:
+            editedItem.price = request.form['price']
+        if request.form['course']:
+            editedItem.course = request.form['course']
             session.add(editedItem)
             session.commit()
             flash('Gun Model Successfully Edited')
             session.close()
             return redirect(url_for('showMenu', guncompany_id=guncompany_id))
         else:
-            return render_template('Editgunmodel.html', guncompany_id=guncompany_id, menu_id=menu_id, item=editedItem)
+            return render_template('Editgunmodel.html',
+                                   guncompany_id=guncompany_id,
+                                   menu_id=menu_id, item=editedItem)
 
 
 # Delete a menu item
-@app.route('/guncompany/<int:guncompany_id>/menu/<int:menu_id>/delete', methods=['GET', 'POST'])
+@app.route('/guncompany/<int:guncompany_id>/menu/<int:menu_id>/delete',
+           methods=['GET', 'POST'])
 def deleteGunModel(guncompany_id, menu_id):
-	session = DBSession()
-        if 'username' not in login_session:
-            return redirect('/login')
-        guncompany = session.query(Gun).filter_by(id=guncompany_id).one()
-        itemToDelete = session.query(GunModel).filter_by(id=menu_id).one()
-	if login_session['user_id'] != guncompany.user_id:
-		return "<script>function myFunction() {alert('You are not authorized to delete this gun model. Please create your own gun model in order to delete items.');}</script><body onload='myFunction()''>"
-        if request.method == 'POST':
-            session.delete(itemToDelete)
-            session.commit()
-            flash('Gun Model Successfully Deleted')
-            session.close()
-            return redirect(url_for('showMenu', guncompany_id=guncompany_id))
-        else:
-            return render_template('Deletegunmodel.html', item=itemToDelete)
+    session = DBSession()
+    if 'username' not in login_session:
+        return redirect('/login')
+    guncompany = session.query(Gun).filter_by(id=guncompany_id).one()
+    itemToDelete = session.query(GunModel).filter_by(id=menu_id).one()
+    if login_session['user_id'] != guncompany.user_id:
+		return "<script>function myFunction() {alert('You are not authorized to\
+        delete this gun model. Please create your own gun model in order to\
+        delete items.');}</script><body onload='myFunction()''>"
+    if request.method == 'POST':
+        session.delete(itemToDelete)
+        session.commit()
+        flash('Gun Model Successfully Deleted')
+        session.close()
+        return redirect(url_for('showMenu', guncompany_id=guncompany_id))
+    else:
+        return render_template('Deletegunmodel.html', item=itemToDelete)
 
 
 if __name__ == '__main__':
